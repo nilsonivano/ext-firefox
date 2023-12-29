@@ -16,14 +16,14 @@
   "background": {
     "scripts": ["src/bg/background.js"]
   },
-  "permissions": ["cookies"],
+  "permissions": ["cookies", "storage"],
   "content_scripts": [
     {
       "matches": ["*://*.linkedin.com/*"],
       "js": ["src/contentScript.js"],
       "css": ["src/tailwind.css"],
-      "run_at": "document_end"
+      "run_at": "document_idle"
     }
   ],
-  "host_permissions": ["*://*.linkedin.com/*", "*://*.linkboost.co/*"]
+  "host_permissions": ["*://*.linkedin.com/*", "*://app.linkboost.co/*"]
 }

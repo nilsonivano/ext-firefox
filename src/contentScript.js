@@ -1,6 +1,9 @@
 const server = 'https://app.linkboost.co';
 
-window.onload = async function () {
+console.log('Linkboost: loading');
+
+const func = async function () {
+  console.log('Linkboost: loaded');
   function findParentByClass(el, className) {
     while ((el = el.parentElement)) {
       if (el.classList.contains(className)) {
@@ -11,21 +14,7 @@ window.onload = async function () {
   }
   // load settings from api call /api/getAiCommentsSettings
   const loadSettings = async () => {
-    const { cookie } = await new Promise((resolve, reject) => {
-      browser.runtime.sendMessage({ type: "getCookie" }, function (response) {
-        resolve(response);
-      });
-    });
-    const response = await fetch(`${server}/api/aiCommentsSettings`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        cookie,
-      }),
-    });
-    const settings = await response.json();
+    const settings = await browser.runtime.sendMessage({ type: "getSettings" });
     return settings;
   };
   // store settings on local storage
@@ -127,23 +116,7 @@ window.onload = async function () {
             qlEditor.innerHTML = `<p>Generating comment...</p>`;
             const type = event.target.id;
             // get cookie from background.js
-            const { cookie } = await new Promise((resolve, reject) => {
-              browser.runtime.sendMessage({ type: "getCookie" }, function (response) {
-                resolve(response);
-              });
-            });
-            const response = await fetch(`${server}/api/aiComments2`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                cookie,
-                content,
-                commentId: type,
-              }),
-            });
-            const comment = await response.text();
+            const comment = await browser.runtime.sendMessage({ type: "getAiComment", content, contentType: type });
             qlEditor.innerHTML = `<p>${comment}</p>`;
           });
         });
@@ -202,3 +175,5 @@ window.onload = async function () {
   }
   setInterval(() => checkForCommentsContainer(settings), 1000);
 }
+
+func();

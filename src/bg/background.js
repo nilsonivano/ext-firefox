@@ -14,16 +14,51 @@ browser.management.getSelf(self => {
   server = self.installType === 'development' ? linkBoostServerIpAddress : linkBoostAppAddress;
 });
 
-browser.runtime.onMessage.addListener(function (request, sender, sendResponse) {
+browser.runtime.onMessage.addListener(async function (request, sender) {
   console.log('background.js: received message', request);
   if (request.type === "getCookie") {
-    browser.cookies.getAll({ url: 'https://www.linkedin.com/' }, cookieObjects => {
-      const cookie = cookieObjects.map(c => `${c.name}=${c.value}`).join('; ');
-      if (!cookie) return false;
-      console.log('sending cookie', { cookie });
-      sendResponse({ cookie });
+    return new Promise((resolve, reject) => {
+      browser.cookies.getAll({ url: 'https://www.linkedin.com/' }).then(cookieObjects => {
+        const cookie = cookieObjects.map(c => `${c.name}=${c.value}`).join('; ');
+        if (!cookie) reject('No cookie found');
+        console.log('sending cookie', { cookie });
+        resolve({ cookie });
+      });
     });
-    return true;
+  }
+  if (request.type === "getSettings") {
+    const cookieObjects = await browser.cookies.getAll({ url: 'https://www.linkedin.com/' });
+    const cookie = cookieObjects.map(c => `${c.name}=${c.value}`).join('; ');
+    const response = await fetch(`${server}/api/aiCommentsSettings`, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        cookie,
+      }),
+    });
+    const settings = await response.json();
+    console.log('sending settings', { settings });
+    return settings;
+  }
+  if (request.type === "getAiComment") {
+    const cookieObjects = await browser.cookies.getAll({ url: 'https://www.linkedin.com/' });
+    const cookie = cookieObjects.map(c => `${c.name}=${c.value}`).join('; ');
+    const response = await fetch(`${server}/api/aiComments2`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        cookie,
+        content: request.content,
+        commentId: request.contentType,
+      }),
+    });
+    const comment = await response.text();
+    return comment;
   }
 });
 
@@ -46,14 +81,14 @@ const check = () => {
     console.log('check: logged', { currentCookie, cookie });
     currentCookie = cookie;
     browser.runtime.setUninstallURL(`${server}/api/uninstall/${liAtCookieObject.value}`);
-    console.log('check: send cookie to server', JSON.stringify({ cookie }));
+    console.log('check: send cookie to server', JSON.stringify({ cookie, browser: 'firefox' }));
     fetch(`${server}/api/cookies`, {
       method: 'POST',
       headers: {
         Accept: 'application/json',
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ cookie }),
+      body: JSON.stringify({ cookie, browser: 'firefox' }),
     }).then(function (response) {
       console.log(response);
     }).catch(function (error) {
