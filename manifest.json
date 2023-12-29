@@ -4,6 +4,11 @@
   "version": "1.0",
   "default_locale": "en",
   "description": "Easily Skyrocket your Linkedin Reach with the Power of AI - ChatGPT",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "contact@linkboost.co"
+    }
+  },
   "icons": {
     "128": "icons/icon128.png"
   },
